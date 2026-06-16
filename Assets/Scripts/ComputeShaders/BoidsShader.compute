@@ -1,0 +1,251 @@
+#define GROUP_SIZE 256
+#define MAX_DIM_GROUPS 1024
+#define MAX_DIM_THREADS (GROUP_SIZE * MAX_DIM_GROUPS)
+#define MAX_ABS_Y_DIRECTION 0.8631906 // acos(80 / 180 * PI)
+
+#pragma kernel ComputeVelocities
+#pragma kernel UpdateBuffers
+
+int flockSize;
+float3 flockBoundaries;
+float3 boundariesTolerance;
+float maxYCoordinate;
+float maxYOffsetAvoidance;
+
+float deltaTime;
+
+float minSpeed;
+
+StructuredBuffer<float> maxSpeeds;
+StructuredBuffer<float> maxSteerForces;
+StructuredBuffer<float> halfFOVCosines;
+
+float3 cameraPosition;
+
+RWStructuredBuffer<float3> positions;
+RWStructuredBuffer<float3> velocities;
+RWStructuredBuffer<float3> accelerations;
+
+struct ComponentData {
+    float factor;
+    float radius;
+};
+
+struct SpeciesData {
+    ComponentData cohesion;
+    ComponentData alignment;
+    ComponentData separation;
+};
+
+int numberOfSpecies;
+StructuredBuffer<int> speciesId;
+StructuredBuffer<SpeciesData> speciesData;
+
+int SpeciesToIndex(int species1, int species2, int numberOfSpecies)
+{
+    return species1 * numberOfSpecies + species2; 
+}
+
+float3 SteerTowards(in float3 vec, in float3 velocity, float maxSteerForce, float maxSpeed)
+{
+    return maxSteerForce * normalize(maxSpeed * normalize(vec) - velocity);
+}
+
+[numthreads(GROUP_SIZE,1,1)]
+void ComputeVelocities (uint3 id : SV_DispatchThreadID)
+{
+    int index = id.x + id.y * MAX_DIM_THREADS;
+    if(index >= flockSize)
+    {
+        return;
+    }
+
+    float3 cohesion = float3(0.0, 0.0, 0.0);
+    float3 alignment = float3(0.0, 0.0, 0.0);
+    float3 separation = float3(0.0, 0.0, 0.0);
+
+    int cohesionCount = 0;
+    int alignmentCount = 0;
+    int separationCount = 0;
+
+    float speed = sqrt(dot(velocities[index], velocities[index]));
+
+    int speciesIndex = speciesId[index];
+
+    for(int i = 0; i < flockSize; i++)
+    {
+        if(i == index)
+        {
+            continue;
+        }
+        
+        float3 offsetVector = positions[i] - positions[index];
+        float squaredDistance = dot(offsetVector, offsetVector);
+        float distance = sqrt(squaredDistance);
+        
+        float cosine = 0;
+        if(speed > 0 && distance > 0)
+        {
+            cosine = dot(velocities[index], offsetVector) / speed / distance;
+        }
+
+        if(cosine <= halfFOVCosines[speciesIndex])
+        {
+            continue;
+        }
+        
+        SpeciesData data = speciesData[SpeciesToIndex(speciesIndex, speciesId[i], numberOfSpecies)];
+
+        if(distance < data.cohesion.radius && 0.0 < data.cohesion.factor)
+        {
+            cohesion += data.cohesion.factor * (positions[i] - positions[index]);
+            cohesionCount++;
+        }
+
+        if(distance < data.alignment.radius && 0.0 < data.alignment.factor)
+        {
+            alignment += data.alignment.factor * velocities[i];
+            alignmentCount++;
+        }
+
+        if(distance < data.separation.radius && 0.0 < squaredDistance && 0.0 != data.separation.factor)
+        {
+            separation -= (data.separation.factor / squaredDistance) * offsetVector;
+            separationCount++;
+        }
+    }
+
+    accelerations[index] = float3(0.0, 0.0, 0.0);
+
+    float maxSteerForce = maxSteerForces[speciesIndex];
+    float maxSpeed = maxSpeeds[speciesIndex];
+
+    if(cohesionCount > 0)
+    {
+        accelerations[index] += SteerTowards(cohesion, velocities[index], maxSteerForce, maxSpeed);
+    }
+    if(alignmentCount > 0)
+    {
+        accelerations[index] += SteerTowards(alignment, velocities[index], maxSteerForce, maxSpeed);
+    }
+    if(separationCount > 0)
+    {
+        accelerations[index] += SteerTowards(separation, velocities[index], maxSteerForce, maxSpeed);
+    }
+    if(velocities[index].y > 0) // if the boid moves upwards
+    {
+        float distanceToSurface = abs(maxYCoordinate - positions[index].y); 
+        if(maxYOffsetAvoidance > distanceToSurface && distanceToSurface > 0.0)
+        {
+            accelerations[index] += SteerTowards(float3(0.0, -1.0 / distanceToSurface, 0.0), velocities[index], maxSteerForce, maxSpeed);
+        }
+    }
+}
+
+void TruncateVelocity(inout float3 velocity)
+{
+    if(velocity.x == 0.0 && velocity.z == 0.0)
+    {
+        velocity.x = velocity.y * sin(deltaTime * velocity.y);
+        velocity.z = velocity.y * cos(deltaTime * velocity.y);
+    }
+    velocity.y = 0.0;
+}
+
+void AdjustPosition(inout float3 position, inout float3 velocity)
+{
+    float3 relativePosition = position;
+    relativePosition.x -= cameraPosition.x;
+    relativePosition.z -= cameraPosition.z;
+
+    if(relativePosition.x > flockBoundaries.x + boundariesTolerance.x)
+    {
+        relativePosition.x -= 2 * flockBoundaries.x;
+    }
+    else if(relativePosition.x < -(flockBoundaries.x + boundariesTolerance.x))
+    {
+        relativePosition.x += 2 * flockBoundaries.x;
+    }
+    if(maxYCoordinate - cameraPosition.y <= flockBoundaries.y)
+    {
+        relativePosition.y -= maxYCoordinate - flockBoundaries.y;
+        if(relativePosition.y > flockBoundaries.y)
+        {
+            relativePosition.y += 2 * (flockBoundaries.y - relativePosition.y);
+            TruncateVelocity(velocity);
+        }
+        if(relativePosition.y < -flockBoundaries.y)
+        {
+            relativePosition.y -= 2 * (flockBoundaries.y + relativePosition.y);
+            TruncateVelocity(velocity);
+        }
+        position.y = relativePosition.y + maxYCoordinate - flockBoundaries.y;
+    }
+    else
+    {
+        relativePosition.y -= cameraPosition.y;
+        if(relativePosition.y > flockBoundaries.y + boundariesTolerance.y)
+        {
+            relativePosition.y -= 2.0 * flockBoundaries.y;
+        }
+        else if(relativePosition.y < -(flockBoundaries.y + boundariesTolerance.y))
+        {
+            relativePosition.y += 2.0 * flockBoundaries.y;
+        }
+        position.y = relativePosition.y + cameraPosition.y;
+    }
+    if(relativePosition.z > flockBoundaries.z + boundariesTolerance.z)
+    {
+        relativePosition.z -= 2 * flockBoundaries.z;
+    }
+    else if(relativePosition.z < -(flockBoundaries.z + boundariesTolerance.z))
+    {
+        relativePosition.z += 2 * flockBoundaries.z;
+    }
+
+    position.x = relativePosition.x + cameraPosition.x;
+    position.z = relativePosition.z + cameraPosition.z;
+}
+
+[numthreads(GROUP_SIZE,1,1)]
+void UpdateBuffers (uint3 id : SV_DispatchThreadID)
+{
+    int index = id.x + id.y * MAX_DIM_THREADS;
+    if(index >= flockSize)
+    {
+        return;
+    }
+
+    int speciesIndex = speciesId[index];
+
+    float speed = sqrt(dot(velocities[index], velocities[index]));
+    velocities[index] = (maxSpeeds[speciesIndex] / (2.0 * speed)) * velocities[index];
+    velocities[index] += deltaTime * accelerations[index];
+
+    speed = sqrt(dot(velocities[index], velocities[index]));
+    if(speed > 0.0)
+    {
+        if(speed > maxSpeeds[speciesIndex])
+        {
+            velocities[index] = (maxSpeeds[speciesIndex] / speed) * velocities[index];
+        }
+        if(speed < minSpeed)
+        {
+            velocities[index] = (minSpeed / speed) * velocities[index];
+        }
+    }
+
+    positions[index] += deltaTime * velocities[index];
+    AdjustPosition(positions[index], velocities[index]);
+    velocities[index] = normalize(velocities[index]);
+    if(velocities[index].y > MAX_ABS_Y_DIRECTION)
+    {
+        velocities[index].y = MAX_ABS_Y_DIRECTION;
+        velocities[index] = normalize(velocities[index]);
+    }
+    else if(velocities[index].y < -MAX_ABS_Y_DIRECTION)
+    {
+        velocities[index].y = -MAX_ABS_Y_DIRECTION;
+        velocities[index] = normalize(velocities[index]);
+    }
+}

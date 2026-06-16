@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 17005e9e1b51fe041b30aa42171dcbf0, type: 3}
+  m_Name: EmperorAngelfishData
+  m_EditorClassIdentifier: 
+  FishName: Emperor Angelfish
+  Description: A vibrant reef fish known for its striking blue and yellow stripes
+  Icon: {fileID: 0}
+  Habitat: Coral reefs, Indo-Pacific ocean
+  Diet: Algae, sponges, small invertebrates
+  Size: Up to 40 cm

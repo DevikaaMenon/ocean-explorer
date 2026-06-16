@@ -1,0 +1,124 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b7beaaeba07db514dad7984d6ec4a17b, type: 3}
+  m_Name: Boids Setting
+  m_EditorClassIdentifier: 
+  SpawnRadius: 100
+  MaxYCoordinate: 24
+  MaxYOffsetAvoidance: 10
+  FlockBoundaries: {x: 40, y: 30, z: 40}
+  BoundariesTolerance: {x: 5, y: 5, z: 5}
+  ObstacleAvoidanceDirectionsCount: 4
+  ObstacleAvoidanceFactor: 10.5
+  ObstacleAvoidanceVectorZComponent: 0
+  ObstacleDistance: 10
+  BoidsSettings:
+  - MaxSpeed: 6.8
+    MaxSteerForce: 4.74
+    HalfFOVCosine: -1
+    Interactions:
+    - SpeciesId: 0
+      Behaviour:
+        cohesion:
+          factor: 2.9
+          radius: 4.3
+        alignment:
+          factor: 2.1
+          radius: 9.2
+        separation:
+          factor: 90
+          radius: 32.5
+    - SpeciesId: 1
+      Behaviour:
+        cohesion:
+          factor: 0
+          radius: 0
+        alignment:
+          factor: 0
+          radius: 0
+        separation:
+          factor: 14
+          radius: 34.7
+  - MaxSpeed: 8.2
+    MaxSteerForce: 3.15
+    HalfFOVCosine: 0
+    Interactions:
+    - SpeciesId: 0
+      Behaviour:
+        cohesion:
+          factor: 4
+          radius: 3.6
+        alignment:
+          factor: 8
+          radius: 5.7
+        separation:
+          factor: 9
+          radius: 8.3
+    - SpeciesId: 1
+      Behaviour:
+        cohesion:
+          factor: 0
+          radius: 0
+        alignment:
+          factor: 1
+          radius: 5.7
+        separation:
+          factor: 9
+          radius: 8.3
+    - SpeciesId: 2
+      Behaviour:
+        cohesion:
+          factor: 7.9
+          radius: 20.4
+        alignment:
+          factor: 8.6
+          radius: 9.3
+        separation:
+          factor: 3.6
+          radius: 4.3
+  - MaxSpeed: 5.01
+    MaxSteerForce: 4.25
+    HalfFOVCosine: -0.659
+    Interactions:
+    - SpeciesId: 0
+      Behaviour:
+        cohesion:
+          factor: 4.3
+          radius: 5.7
+        alignment:
+          factor: 14.3
+          radius: 4.3
+        separation:
+          factor: 16.4
+          radius: 8.9
+    - SpeciesId: 1
+      Behaviour:
+        cohesion:
+          factor: 0
+          radius: 0
+        alignment:
+          factor: 0
+          radius: 0
+        separation:
+          factor: 19.3
+          radius: 8.9
+    - SpeciesId: 2
+      Behaviour:
+        cohesion:
+          factor: 6.4
+          radius: 11.8
+        alignment:
+          factor: 6.4
+          radius: 3.6
+        separation:
+          factor: 7.9
+          radius: 10.4

@@ -1,0 +1,36 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0b7697fa4432ded43bc9c84d6f181aac, type: 3}
+  m_Name: Noise Setting 1
+  m_EditorClassIdentifier: 
+  Seed: 8
+  SpaceOffset: {x: 0, y: 0, z: 0}
+  NumOctaves: 11
+  Frequency: 1.79
+  Lacunarity: 1.8
+  Amplitude: 2.53
+  Persistence: 0.58
+  OffsetY: 2
+  YWeight: 1
+  NoiseWeight: 11
+  VWeight: 10
+  CeilingY: 0.7
+  CeilingWeight: -13.5
+  HardCeilingY: 0.9
+  HardCeilingWeight: -200
+  FloorY: 0.5
+  FloorWeight: 8
+  HardFloorY: 0.05
+  HardFloorWeight: 200
+  WarpFrequency: 5.5
+  WarpAmplitude: 11
+  Terracing: {x: 1.6, y: 20}

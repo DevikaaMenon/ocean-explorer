@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b8ff06cef0b093c4cbb47d7b6ad886a9, type: 3}
+  m_Name: Branch Coral Setting
+  m_EditorClassIdentifier: 
+  Prefabs:
+  - {fileID: 919132149155446097, guid: f5e8c8e6fe84ece499fe73ac085c59f3, type: 3}
+  - {fileID: 919132149155446097, guid: 75e07297a773f5d49b074582f4307405, type: 3}
+  ModelScale: 0.5
+  Density: 0.32
+  NormalAndUpSlerp: 0.3
+  MaxAngle: 50
+  NoiseScale: 1
+  Offset: {x: 0, y: 0, z: 0}

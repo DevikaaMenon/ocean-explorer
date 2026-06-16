@@ -1,0 +1,112 @@
+#pragma kernel MarchingCubes
+#include "Includes/MarchingCubesTables.compute"
+
+static const int numThreads = 8;
+
+struct Triangle {
+    float3 v0;
+    float3 v1;
+    float3 v2;
+};
+
+AppendStructuredBuffer<Triangle> triangles;
+RWStructuredBuffer<float> densities;
+
+float threshold;
+
+int pointsPerAxisXZ;
+int pointsPerAxisY;
+float scale;
+float3 worldPos;
+
+int idToIndex(int x, int y, int z) {
+    return z * pointsPerAxisXZ * pointsPerAxisY + y * pointsPerAxisXZ + x;
+}
+
+float3 interpolate(float4 v1, float4 v2) {
+    float t = (threshold - v1.w) / (v2.w - v1.w);
+    return v1.xyz + t * (v2.xyz - v1.xyz);
+}
+
+[numthreads(numThreads, numThreads, numThreads)]
+void MarchingCubes(int3 id : SV_DispatchThreadID) {
+    if (id.x >= pointsPerAxisXZ - 1 || id.y >= pointsPerAxisY - 1 || id.z >= pointsPerAxisXZ - 1) {
+        return;
+    }
+    
+    float cubeDensities[8] = {
+        densities[idToIndex(id.x, id.y, id.z)],
+        densities[idToIndex(id.x + 1, id.y, id.z)],
+        densities[idToIndex(id.x + 1, id.y, id.z + 1)],
+        densities[idToIndex(id.x, id.y, id.z + 1)],
+        densities[idToIndex(id.x, id.y + 1, id.z)],
+        densities[idToIndex(id.x + 1, id.y + 1, id.z)],
+        densities[idToIndex(id.x + 1, id.y + 1, id.z + 1)],
+        densities[idToIndex(id.x, id.y + 1, id.z + 1)]
+    };
+    
+    int triangulationIndex = 0;
+    for (int i = 0, shift = 1; i < 8; i++, shift <<= 1) {
+        if (cubeDensities[i] < threshold) {
+            triangulationIndex |= shift;
+        }
+    }
+    
+    for (i = 0; triangulationTable[triangulationIndex][i] != -1; i += 3) {
+        int e0 = triangulationTable[triangulationIndex][i];
+        int e1 = triangulationTable[triangulationIndex][i + 1];
+        int e2 = triangulationTable[triangulationIndex][i + 2];
+        
+        int e00 = edgeConnections[e0][0];
+        int e01 = edgeConnections[e0][1];
+               
+        int e10 = edgeConnections[e1][0];
+        int e11 = edgeConnections[e1][1];
+               
+        int e20 = edgeConnections[e2][0];
+        int e21 = edgeConnections[e2][1];
+        
+        float4 v00 = {
+            cornerOffsets[e00][0],
+			cornerOffsets[e00][1],
+			cornerOffsets[e00][2],
+            cubeDensities[e00]
+        };
+        float4 v01 = {
+            cornerOffsets[e01][0],
+			cornerOffsets[e01][1],
+			cornerOffsets[e01][2],
+            cubeDensities[e01]
+        };
+        float4 v10 = {
+            cornerOffsets[e10][0],
+			cornerOffsets[e10][1],
+			cornerOffsets[e10][2],
+            cubeDensities[e10]
+        };
+        float4 v11 = {
+            cornerOffsets[e11][0],
+			cornerOffsets[e11][1],
+			cornerOffsets[e11][2],
+            cubeDensities[e11]
+        };
+        float4 v20 = {
+            cornerOffsets[e20][0],
+			cornerOffsets[e20][1],
+			cornerOffsets[e20][2],
+            cubeDensities[e20]
+        };
+        float4 v21 = {
+            cornerOffsets[e21][0],
+			cornerOffsets[e21][1],
+			cornerOffsets[e21][2],
+            cubeDensities[e21]
+        };
+        
+        Triangle tri;
+        tri.v0 = scale * (interpolate(v00, v01) + id) + worldPos;
+        tri.v1 = scale * (interpolate(v10, v11) + id) + worldPos;
+        tri.v2 = scale * (interpolate(v20, v21) + id) + worldPos;
+        triangles.Append(tri);
+    }
+}
