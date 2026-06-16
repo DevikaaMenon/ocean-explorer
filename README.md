@@ -1,1 +1,1 @@
-ocean explorer project
+ocean exploration projecct
